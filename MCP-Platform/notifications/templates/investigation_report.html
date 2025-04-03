@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .report-info {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .findings {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .evidence {
+            background-color: #fff;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .conclusion {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .footer {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>Investigation Report</h2>
+        <p>Report ID: {{ report_id }}</p>
+        <p>Alert ID: {{ alert_id }}</p>
+        <p>Timestamp: {{ timestamp }}</p>
+    </div>
+
+    <div class="report-info">
+        <h3>Investigation Details</h3>
+        <p><strong>Investigator:</strong> {{ investigator }}</p>
+        <p><strong>Duration:</strong> {{ duration }}</p>
+        <p><strong>Status:</strong> {{ status }}</p>
+    </div>
+
+    <div class="findings">
+        <h3>Key Findings</h3>
+        <ul>
+            {% for finding in findings %}
+            <li>{{ finding }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="evidence">
+        <h3>Evidence Collected</h3>
+        {% for item in evidence %}
+        <div style="margin-bottom: 15px;">
+            <p><strong>Type:</strong> {{ item.type }}</p>
+            <p><strong>Description:</strong> {{ item.description }}</p>
+            {% if item.source %}
+            <p><strong>Source:</strong> {{ item.source }}</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="conclusion">
+        <h3>Conclusion</h3>
+        <p>{{ conclusion }}</p>
+
+        {% if recommendations %}
+        <h3>Recommendations</h3>
+        <ul>
+            {% for recommendation in recommendations %}
+            <li>{{ recommendation }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+
+    <div class="footer">
+        <p>This is an automated investigation report from the MCP Platform.</p>
+        <p>For questions or clarifications, please contact your security team.</p>
+    </div>
+</body>
+</html> 

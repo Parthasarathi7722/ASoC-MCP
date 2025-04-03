@@ -1,0 +1,46 @@
+{
+    "elasticsearch": {
+        "hosts": ["http://elasticsearch:9200"],
+        "username": "elastic",
+        "password": "changeme",
+        "verify_certs": false,
+        "timeout": 30
+    },
+    "mongodb": {
+        "uri": "mongodb://mongodb:27017",
+        "database": "security_data",
+        "username": "admin",
+        "password": "changeme",
+        "auth_source": "admin"
+    },
+    "postgresql": {
+        "host": "postgresql",
+        "port": 5432,
+        "database": "security_data",
+        "user": "postgres",
+        "password": "changeme"
+    },
+    "mysql": {
+        "host": "mysql",
+        "port": 3306,
+        "database": "security_data",
+        "user": "root",
+        "password": "changeme"
+    },
+    "splunk": {
+        "host": "splunk",
+        "port": 8089,
+        "username": "admin",
+        "password": "changeme",
+        "verify": false
+    },
+    "tenable": {
+        "access_key": "your_access_key",
+        "secret_key": "your_secret_key",
+        "url": "https://cloud.tenable.com"
+    },
+    "rapid7": {
+        "api_key": "your_api_key",
+        "url": "https://insightvm:3780"
+    }
+} 

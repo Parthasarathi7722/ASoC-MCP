@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .alert-info {
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .severity-high {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .severity-medium {
+            color: #ffc107;
+            font-weight: bold;
+        }
+        .severity-low {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .details {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .footer {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>Security Alert Notification</h2>
+        <p>Alert ID: {{ alert_id }}</p>
+        <p>Timestamp: {{ timestamp }}</p>
+    </div>
+
+    <div class="alert-info">
+        <h3>Alert Details</h3>
+        <p><strong>Title:</strong> {{ title }}</p>
+        <p><strong>Severity:</strong> <span class="severity-{{ severity.lower() }}">{{ severity }}</span></p>
+        <p><strong>Source:</strong> {{ source }}</p>
+    </div>
+
+    <div class="details">
+        <h3>Description</h3>
+        <p>{{ description }}</p>
+
+        {% if indicators %}
+        <h3>Indicators</h3>
+        <ul>
+            {% for indicator in indicators %}
+            <li>{{ indicator }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+
+        {% if recommendations %}
+        <h3>Recommendations</h3>
+        <ul>
+            {% for recommendation in recommendations %}
+            <li>{{ recommendation }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+
+    <div class="footer">
+        <p>This is an automated security alert notification from the MCP Platform.</p>
+        <p>Please do not reply to this email. For assistance, contact your security team.</p>
+    </div>
+</body>
+</html> 

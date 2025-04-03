@@ -1,0 +1,207 @@
+version: '3.8'
+
+services:
+  # Redis for all services
+  redis:
+    image: redis:7.2-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - mcp-network
+
+  # Authentication Service
+  auth-service:
+    build:
+      context: ./auth_service
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=your_secret_key_change_in_production
+      - JWT_ALGORITHM=HS256
+    depends_on:
+      - redis
+    networks:
+      - mcp-network
+
+  # Notifications Service
+  notifications-service:
+    build:
+      context: ./notifications
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=your_secret_key_change_in_production
+      - JWT_ALGORITHM=HS256
+      - SMTP_HOST=smtp.example.com
+      - SMTP_PORT=587
+      - SMTP_USERNAME=your_smtp_username
+      - SMTP_PASSWORD=your_smtp_password
+      - SLACK_WEBHOOK_URL=your_slack_webhook_url
+    volumes:
+      - ./notifications/templates:/app/templates
+    depends_on:
+      - redis
+      - auth-service
+    networks:
+      - mcp-network
+
+  # Data Source Connectors Service
+  data-connectors-service:
+    build:
+      context: ./data_connectors
+      dockerfile: Dockerfile
+    ports:
+      - "8003:8000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=your_secret_key_change_in_production
+      - JWT_ALGORITHM=HS256
+    volumes:
+      - ./data_connectors/config:/app/config
+    depends_on:
+      - redis
+      - auth-service
+    networks:
+      - mcp-network
+
+  # Agent Manager Service
+  agent-manager:
+    build:
+      context: ./agent_manager
+      dockerfile: Dockerfile
+    ports:
+      - "8004:8000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=your_secret_key_change_in_production
+      - JWT_ALGORITHM=HS256
+      - AUTH_SERVICE_URL=http://auth-service:8000
+      - NOTIFICATIONS_SERVICE_URL=http://notifications-service:8000
+      - DATA_CONNECTORS_SERVICE_URL=http://data-connectors-service:8000
+    depends_on:
+      - redis
+      - auth-service
+      - notifications-service
+      - data-connectors-service
+    networks:
+      - mcp-network
+
+  # LLM Orchestrator Service
+  llm-orchestrator:
+    build:
+      context: ./llm_orchestrator
+      dockerfile: Dockerfile
+    ports:
+      - "8005:8000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=your_secret_key_change_in_production
+      - JWT_ALGORITHM=HS256
+      - OPENAI_API_KEY=your_openai_api_key
+      - ANTHROPIC_API_KEY=your_anthropic_api_key
+    depends_on:
+      - redis
+      - auth-service
+    networks:
+      - mcp-network
+
+  # Triage Agent
+  triage-agent:
+    build:
+      context: ./agents/triage_agent
+      dockerfile: Dockerfile
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=your_secret_key_change_in_production
+      - JWT_ALGORITHM=HS256
+      - AGENT_MANAGER_URL=http://agent-manager:8000
+      - LLM_ORCHESTRATOR_URL=http://llm-orchestrator:8000
+    depends_on:
+      - redis
+      - agent-manager
+      - llm-orchestrator
+    networks:
+      - mcp-network
+
+  # Investigation Agent
+  investigation-agent:
+    build:
+      context: ./agents/investigation_agent
+      dockerfile: Dockerfile
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=your_secret_key_change_in_production
+      - JWT_ALGORITHM=HS256
+      - AGENT_MANAGER_URL=http://agent-manager:8000
+      - LLM_ORCHESTRATOR_URL=http://llm-orchestrator:8000
+      - DATA_CONNECTORS_SERVICE_URL=http://data-connectors-service:8000
+    depends_on:
+      - redis
+      - agent-manager
+      - llm-orchestrator
+      - data-connectors-service
+    networks:
+      - mcp-network
+
+  # Threat Intel Agent
+  threat-intel-agent:
+    build:
+      context: ./agents/threat_intel_agent
+      dockerfile: Dockerfile
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=your_secret_key_change_in_production
+      - JWT_ALGORITHM=HS256
+      - AGENT_MANAGER_URL=http://agent-manager:8000
+      - LLM_ORCHESTRATOR_URL=http://llm-orchestrator:8000
+      - DATA_CONNECTORS_SERVICE_URL=http://data-connectors-service:8000
+    depends_on:
+      - redis
+      - agent-manager
+      - llm-orchestrator
+      - data-connectors-service
+    networks:
+      - mcp-network
+
+  # Remediation Agent
+  remediation-agent:
+    build:
+      context: ./agents/remediation_agent
+      dockerfile: Dockerfile
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=your_secret_key_change_in_production
+      - JWT_ALGORITHM=HS256
+      - AGENT_MANAGER_URL=http://agent-manager:8000
+      - LLM_ORCHESTRATOR_URL=http://llm-orchestrator:8000
+      - DATA_CONNECTORS_SERVICE_URL=http://data-connectors-service:8000
+    depends_on:
+      - redis
+      - agent-manager
+      - llm-orchestrator
+      - data-connectors-service
+    networks:
+      - mcp-network
+
+networks:
+  mcp-network:
+    driver: bridge
+
+volumes:
+  redis_data: 
