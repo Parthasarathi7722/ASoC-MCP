@@ -49,7 +49,7 @@ The MCP Platform consists of the following components:
    ```
 
 2. Configure the environment variables:
-   - Copy the sample configuration files in each service directory
+   - Create `.env` files for each service as described in the [Environment Configuration](#environment-configuration) section
    - Update the configuration with your credentials and settings
 
 3. Build and start the services:
@@ -95,6 +95,302 @@ The MCP Platform consists of the following components:
    cd ../agents/threat_intel_agent && uvicorn app:app --reload --port 8008
    cd ../agents/remediation_agent && uvicorn app:app --reload --port 8009
    ```
+
+## Environment Configuration
+
+The MCP Platform uses environment variables for configuration. Below are examples of `.env` files for each service.
+
+### Root .env File (for Docker Compose)
+
+Create a `.env` file in the root directory for Docker Compose:
+
+```
+# Redis Configuration
+REDIS_HOST=redis
+REDIS_PORT=6379
+
+# JWT Configuration
+JWT_SECRET=your-secure-secret-key-change-in-production
+JWT_ALGORITHM=HS256
+
+# Email Configuration
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=your-email@gmail.com
+SMTP_PASSWORD=your-app-specific-password
+
+# Slack Configuration
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK
+
+# OpenAI Configuration
+OPENAI_API_KEY=your-openai-api-key
+
+# Anthropic Configuration
+ANTHROPIC_API_KEY=your-anthropic-api-key
+
+# Data Source Credentials
+ELASTICSEARCH_USERNAME=elastic
+ELASTICSEARCH_PASSWORD=changeme
+MONGODB_USERNAME=admin
+MONGODB_PASSWORD=changeme
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=changeme
+MYSQL_USER=root
+MYSQL_PASSWORD=changeme
+SPLUNK_USERNAME=admin
+SPLUNK_PASSWORD=changeme
+TENABLE_API_KEY=your-tenable-api-key
+RAPID7_API_KEY=your-rapid7-api-key
+VIRUSTOTAL_API_KEY=your-virustotal-api-key
+ALIENVAULT_OTX_API_KEY=your-alienvault-otx-api-key
+SHODAN_API_KEY=your-shodan-api-key
+```
+
+### Authentication Service (.env)
+
+Create a `.env` file in the `auth_service` directory:
+
+```
+# Redis Configuration
+MEMORY_URL=redis://redis:6379
+
+# JWT Configuration
+SECRET_KEY=your-secure-secret-key-change-in-production
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# Service Configuration
+SERVICE_PORT=8000
+SERVICE_HOST=0.0.0.0
+```
+
+### Notifications Service (.env)
+
+Create a `.env` file in the `notifications` directory:
+
+```
+# Redis Configuration
+MEMORY_URL=redis://redis:6379
+
+# JWT Configuration
+SECRET_KEY=your-secure-secret-key-change-in-production
+JWT_ALGORITHM=HS256
+
+# Email Configuration
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=your-email@gmail.com
+SMTP_PASSWORD=your-app-specific-password
+EMAIL_FROM=notifications@example.com
+
+# Slack Configuration
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK
+
+# Service Configuration
+SERVICE_PORT=8000
+SERVICE_HOST=0.0.0.0
+```
+
+### Data Connectors Service (.env)
+
+Create a `.env` file in the `data_connectors` directory:
+
+```
+# Redis Configuration
+MEMORY_URL=redis://redis:6379
+
+# JWT Configuration
+SECRET_KEY=your-secure-secret-key-change-in-production
+JWT_ALGORITHM=HS256
+
+# Elasticsearch Configuration
+ELASTICSEARCH_HOST=http://elasticsearch:9200
+ELASTICSEARCH_USERNAME=elastic
+ELASTICSEARCH_PASSWORD=changeme
+
+# MongoDB Configuration
+MONGODB_URI=mongodb://mongodb:27017
+MONGODB_USERNAME=admin
+MONGODB_PASSWORD=changeme
+MONGODB_AUTH_SOURCE=admin
+
+# PostgreSQL Configuration
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_DB=security_data
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=changeme
+
+# MySQL Configuration
+MYSQL_HOST=mysql
+MYSQL_PORT=3306
+MYSQL_DATABASE=security_data
+MYSQL_USER=root
+MYSQL_PASSWORD=changeme
+
+# Splunk Configuration
+SPLUNK_HOST=splunk
+SPLUNK_PORT=8089
+SPLUNK_USERNAME=admin
+SPLUNK_PASSWORD=changeme
+
+# Tenable.io Configuration
+TENABLE_API_KEY=your-tenable-api-key
+
+# Rapid7 Configuration
+RAPID7_API_KEY=your-rapid7-api-key
+
+# Service Configuration
+SERVICE_PORT=8000
+SERVICE_HOST=0.0.0.0
+```
+
+### Agent Manager Service (.env)
+
+Create a `.env` file in the `agent_manager` directory:
+
+```
+# Redis Configuration
+MEMORY_URL=redis://redis:6379
+
+# JWT Configuration
+SECRET_KEY=your-secure-secret-key-change-in-production
+JWT_ALGORITHM=HS256
+
+# Service URLs
+AUTH_SERVICE_URL=http://auth-service:8000
+NOTIFICATIONS_SERVICE_URL=http://notifications-service:8000
+DATA_CONNECTORS_SERVICE_URL=http://data-connectors-service:8000
+LLM_ORCHESTRATOR_URL=http://llm-orchestrator:8000
+TRIAGE_AGENT_URL=http://triage-agent:8000
+INVESTIGATION_AGENT_URL=http://investigation-agent:8000
+THREAT_INTEL_AGENT_URL=http://threat-intel-agent:8000
+REMEDIATION_AGENT_URL=http://remediation-agent:8000
+
+# Service Configuration
+SERVICE_PORT=8000
+SERVICE_HOST=0.0.0.0
+```
+
+### LLM Orchestrator Service (.env)
+
+Create a `.env` file in the `llm_orchestrator` directory:
+
+```
+# Redis Configuration
+MEMORY_URL=redis://redis:6379
+
+# JWT Configuration
+SECRET_KEY=your-secure-secret-key-change-in-production
+JWT_ALGORITHM=HS256
+
+# OpenAI Configuration
+OPENAI_API_KEY=your-openai-api-key
+
+# Anthropic Configuration (if used)
+ANTHROPIC_API_KEY=your-anthropic-api-key
+
+# Service Configuration
+SERVICE_PORT=8000
+SERVICE_HOST=0.0.0.0
+```
+
+### Triage Agent (.env)
+
+Create a `.env` file in the `agents/triage_agent` directory:
+
+```
+# Redis Configuration
+MEMORY_URL=redis://redis:6379
+
+# JWT Configuration
+SECRET_KEY=your-secure-secret-key-change-in-production
+JWT_ALGORITHM=HS256
+
+# LLM Orchestrator Configuration
+LLM_ORCHESTRATOR_URL=http://llm-orchestrator:8000
+
+# Service Configuration
+SERVICE_PORT=8000
+SERVICE_HOST=0.0.0.0
+```
+
+### Investigation Agent (.env)
+
+Create a `.env` file in the `agents/investigation_agent` directory:
+
+```
+# Redis Configuration
+MEMORY_URL=redis://redis:6379
+
+# JWT Configuration
+SECRET_KEY=your-secure-secret-key-change-in-production
+JWT_ALGORITHM=HS256
+
+# LLM Orchestrator Configuration
+LLM_ORCHESTRATOR_URL=http://llm-orchestrator:8000
+
+# Data Connectors Configuration
+DATA_CONNECTORS_URL=http://data-connectors-service:8000
+
+# Service Configuration
+SERVICE_PORT=8000
+SERVICE_HOST=0.0.0.0
+```
+
+### Threat Intel Agent (.env)
+
+Create a `.env` file in the `agents/threat_intel_agent` directory:
+
+```
+# Redis Configuration
+MEMORY_URL=redis://redis:6379
+
+# JWT Configuration
+SECRET_KEY=your-secure-secret-key-change-in-production
+JWT_ALGORITHM=HS256
+
+# LLM Orchestrator Configuration
+LLM_ORCHESTRATOR_URL=http://llm-orchestrator:8000
+
+# Data Connectors Configuration
+DATA_CONNECTORS_URL=http://data-connectors-service:8000
+
+# Threat Intel API Keys
+VIRUSTOTAL_API_KEY=your-virustotal-api-key
+ALIENVAULT_OTX_API_KEY=your-alienvault-otx-api-key
+SHODAN_API_KEY=your-shodan-api-key
+
+# Service Configuration
+SERVICE_PORT=8000
+SERVICE_HOST=0.0.0.0
+```
+
+### Remediation Agent (.env)
+
+Create a `.env` file in the `agents/remediation_agent` directory:
+
+```
+# Redis Configuration
+MEMORY_URL=redis://redis:6379
+
+# JWT Configuration
+SECRET_KEY=your-secure-secret-key-change-in-production
+JWT_ALGORITHM=HS256
+
+# LLM Orchestrator Configuration
+LLM_ORCHESTRATOR_URL=http://llm-orchestrator:8000
+
+# Data Connectors Configuration
+DATA_CONNECTORS_URL=http://data-connectors-service:8000
+
+# Notifications Configuration
+NOTIFICATIONS_URL=http://notifications-service:8000
+
+# Service Configuration
+SERVICE_PORT=8000
+SERVICE_HOST=0.0.0.0
+```
 
 ## Usage
 
