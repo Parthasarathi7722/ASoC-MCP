@@ -12,6 +12,8 @@ The platform consists of the following components:
 - **S3 Buckets**: Log storage for CloudTrail, WAF, ALB, and VPC Flow logs
 - **CloudWatch Logs**: Centralized logging
 - **IAM Roles and Policies**: Least privilege access
+- **KMS**: Encryption for data at rest
+- **Load Balancers**: Application load balancers for Wazuh and MCP Platform
 
 ### Optional Components
 - **Wazuh SIEM**: Open-source security information and event management
@@ -32,6 +34,7 @@ Deploy only the MCP Platform without Wazuh SIEM.
 - Terraform installed (version >= 1.0.0)
 - AWS CLI configured with appropriate credentials
 - SSH key pair for EC2 instance access
+- SSL certificates for load balancers
 
 ### Deployment
 1. Clone the repository:
@@ -60,11 +63,13 @@ deploy_mcp_platform = true # Set to false to deploy only Wazuh
 # Wazuh configuration (if deploy_wazuh = true)
 wazuh_admin_password = "your-secure-password"
 wazuh_instance_type = "t3.large"
+wazuh_certificate_arn = "arn:aws:acm:region:account:certificate/your-cert"
 
 # MCP Platform configuration (if deploy_mcp_platform = true)
 openai_api_key = "your-openai-api-key"
 jwt_secret = "your-jwt-secret"
 mcp_instance_type = "t3.large"
+mcp_certificate_arn = "arn:aws:acm:region:account:certificate/your-cert"
 
 # S3 bucket configuration (optional)
 cloudtrail_bucket = ""  # Leave empty to create new
@@ -168,6 +173,43 @@ curl -X POST https://your-mcp-platform-url/api/v1/connectors \
   }'
 ```
 
+## Testing
+
+### Infrastructure Testing
+The project includes a test configuration in the `terraform/test` directory. To run the tests:
+
+1. Navigate to the test directory:
+```bash
+cd terraform/test
+```
+
+2. Initialize and apply the test configuration:
+```bash
+terraform init
+terraform plan
+terraform apply
+```
+
+### MCP Platform Testing
+The MCP Platform includes integration tests. To run the tests:
+
+1. Install the test dependencies:
+```bash
+cd MCP-Platform
+pip install -r requirements-dev.txt
+```
+
+2. Set up the test environment:
+```bash
+export MCP_PLATFORM_URL="https://your-mcp-platform-url"
+export MCP_API_KEY="your-api-key"
+```
+
+3. Run the tests:
+```bash
+python -m pytest tests/
+```
+
 ## Documentation
 For more detailed information, please refer to the following documentation:
 
@@ -181,6 +223,9 @@ For more detailed information, please refer to the following documentation:
 3. Monitor and rotate API keys and certificates
 4. Implement proper network segmentation
 5. Enable encryption for data at rest and in transit
+6. Use KMS for managing encryption keys
+7. Implement least privilege IAM policies
+8. Use load balancers with SSL/TLS termination
 
 ## Troubleshooting
 1. Check Wazuh service status:
@@ -198,6 +243,11 @@ sudo tail -f /var/ossec/logs/ossec.log
 3. Check MCP Platform logs:
 ```bash
 docker logs mcp-platform
+```
+
+4. Check load balancer health:
+```bash
+aws elbv2 describe-target-health --target-group-arn your-target-group-arn
 ```
 
 ## Support

@@ -30,4 +30,21 @@ variable "vpc_flow_logs_bucket" {
   description = "Name of existing VPC flow logs S3 bucket (leave empty to create new)"
   type        = string
   default     = ""
+}
+
+variable "deploy_wazuh" {
+  description = "Whether to deploy Wazuh SIEM"
+  type        = bool
+  default     = true
+}
+
+variable "deploy_mcp_platform" {
+  description = "Whether to deploy MCP Platform"
+  type        = bool
+  default     = true
+}
+
+variable "kms_key_arn" {
+  description = "ARN of the KMS key used for encryption"
+  type        = string
 } 

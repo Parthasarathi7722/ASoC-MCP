@@ -1,6 +1,7 @@
 # IAM Role for Wazuh
 resource "aws_iam_role" "wazuh" {
-  name = "${var.project_name}-${var.environment}-wazuh-role"
+  count = var.deploy_wazuh ? 1 : 0
+  name  = "${var.project_name}-${var.environment}-wazuh-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -24,24 +25,25 @@ resource "aws_iam_role" "wazuh" {
 
 # IAM Instance Profile for Wazuh
 resource "aws_iam_instance_profile" "wazuh" {
-  name = "${var.project_name}-${var.environment}-wazuh-profile"
-  role = aws_iam_role.wazuh.name
+  count = var.deploy_wazuh ? 1 : 0
+  name  = "${var.project_name}-${var.environment}-wazuh-profile"
+  role  = aws_iam_role.wazuh[0].name
 }
 
-# IAM Policy for Wazuh
-resource "aws_iam_policy" "wazuh" {
-  name        = "${var.project_name}-${var.environment}-wazuh-policy"
-  description = "Policy for Wazuh SIEM"
+# Wazuh S3 Access Policy
+resource "aws_iam_policy" "wazuh_s3" {
+  count = var.deploy_wazuh ? 1 : 0
+  name  = "${var.project_name}-${var.environment}-wazuh-s3-policy"
 
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
+        Effect = "Allow"
         Action = [
           "s3:GetObject",
           "s3:ListBucket"
         ]
-        Effect   = "Allow"
         Resource = [
           "arn:aws:s3:::${var.cloudtrail_bucket}",
           "arn:aws:s3:::${var.cloudtrail_bucket}/*",
@@ -52,30 +54,78 @@ resource "aws_iam_policy" "wazuh" {
           "arn:aws:s3:::${var.vpc_flow_logs_bucket}",
           "arn:aws:s3:::${var.vpc_flow_logs_bucket}/*"
         ]
-      },
+      }
+    ]
+  })
+}
+
+# Wazuh CloudWatch Logs Policy
+resource "aws_iam_policy" "wazuh_cloudwatch" {
+  count = var.deploy_wazuh ? 1 : 0
+  name  = "${var.project_name}-${var.environment}-wazuh-cloudwatch-policy"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
       {
+        Effect = "Allow"
         Action = [
           "logs:CreateLogGroup",
           "logs:CreateLogStream",
           "logs:PutLogEvents",
           "logs:DescribeLogStreams"
         ]
-        Effect   = "Allow"
-        Resource = "arn:aws:logs:*:*:*"
+        Resource = [
+          "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:/aws/wazuh/*"
+        ]
       }
     ]
   })
 }
 
-# Attach Policy to Role
-resource "aws_iam_role_policy_attachment" "wazuh" {
-  role       = aws_iam_role.wazuh.name
-  policy_arn = aws_iam_policy.wazuh.arn
+# Wazuh KMS Policy for Encryption
+resource "aws_iam_policy" "wazuh_kms" {
+  count = var.deploy_wazuh ? 1 : 0
+  name  = "${var.project_name}-${var.environment}-wazuh-kms-policy"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "kms:Decrypt",
+          "kms:GenerateDataKey"
+        ]
+        Resource = [var.kms_key_arn]
+      }
+    ]
+  })
+}
+
+# Attach policies to Wazuh role
+resource "aws_iam_role_policy_attachment" "wazuh_s3" {
+  count      = var.deploy_wazuh ? 1 : 0
+  role       = aws_iam_role.wazuh[0].name
+  policy_arn = aws_iam_policy.wazuh_s3[0].arn
+}
+
+resource "aws_iam_role_policy_attachment" "wazuh_cloudwatch" {
+  count      = var.deploy_wazuh ? 1 : 0
+  role       = aws_iam_role.wazuh[0].name
+  policy_arn = aws_iam_policy.wazuh_cloudwatch[0].arn
+}
+
+resource "aws_iam_role_policy_attachment" "wazuh_kms" {
+  count      = var.deploy_wazuh ? 1 : 0
+  role       = aws_iam_role.wazuh[0].name
+  policy_arn = aws_iam_policy.wazuh_kms[0].arn
 }
 
 # IAM Role for MCP Platform
 resource "aws_iam_role" "mcp_platform" {
-  name = "${var.project_name}-${var.environment}-mcp-platform-role"
+  count = var.deploy_mcp_platform ? 1 : 0
+  name  = "${var.project_name}-${var.environment}-mcp-platform-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -99,25 +149,26 @@ resource "aws_iam_role" "mcp_platform" {
 
 # IAM Instance Profile for MCP Platform
 resource "aws_iam_instance_profile" "mcp_platform" {
-  name = "${var.project_name}-${var.environment}-mcp-platform-profile"
-  role = aws_iam_role.mcp_platform.name
+  count = var.deploy_mcp_platform ? 1 : 0
+  name  = "${var.project_name}-${var.environment}-mcp-platform-profile"
+  role  = aws_iam_role.mcp_platform[0].name
 }
 
-# IAM Policy for MCP Platform
-resource "aws_iam_policy" "mcp_platform" {
-  name        = "${var.project_name}-${var.environment}-mcp-platform-policy"
-  description = "Policy for MCP Platform"
+# MCP Platform S3 Access Policy
+resource "aws_iam_policy" "mcp_platform_s3" {
+  count = var.deploy_mcp_platform ? 1 : 0
+  name  = "${var.project_name}-${var.environment}-mcp-platform-s3-policy"
 
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
+        Effect = "Allow"
         Action = [
           "s3:GetObject",
           "s3:ListBucket",
           "s3:PutObject"
         ]
-        Effect   = "Allow"
         Resource = [
           "arn:aws:s3:::${var.cloudtrail_bucket}",
           "arn:aws:s3:::${var.cloudtrail_bucket}/*",
@@ -128,23 +179,75 @@ resource "aws_iam_policy" "mcp_platform" {
           "arn:aws:s3:::${var.vpc_flow_logs_bucket}",
           "arn:aws:s3:::${var.vpc_flow_logs_bucket}/*"
         ]
-      },
+      }
+    ]
+  })
+}
+
+# MCP Platform CloudWatch Logs Policy
+resource "aws_iam_policy" "mcp_platform_cloudwatch" {
+  count = var.deploy_mcp_platform ? 1 : 0
+  name  = "${var.project_name}-${var.environment}-mcp-platform-cloudwatch-policy"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
       {
+        Effect = "Allow"
         Action = [
           "logs:CreateLogGroup",
           "logs:CreateLogStream",
           "logs:PutLogEvents",
           "logs:DescribeLogStreams"
         ]
-        Effect   = "Allow"
-        Resource = "arn:aws:logs:*:*:*"
+        Resource = [
+          "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:/aws/mcp-platform/*"
+        ]
       }
     ]
   })
 }
 
-# Attach Policy to Role
-resource "aws_iam_role_policy_attachment" "mcp_platform" {
-  role       = aws_iam_role.mcp_platform.name
-  policy_arn = aws_iam_policy.mcp_platform.arn
-} 
+# MCP Platform KMS Policy for Encryption
+resource "aws_iam_policy" "mcp_platform_kms" {
+  count = var.deploy_mcp_platform ? 1 : 0
+  name  = "${var.project_name}-${var.environment}-mcp-platform-kms-policy"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "kms:Decrypt",
+          "kms:GenerateDataKey",
+          "kms:Encrypt"
+        ]
+        Resource = [var.kms_key_arn]
+      }
+    ]
+  })
+}
+
+# Attach policies to MCP Platform role
+resource "aws_iam_role_policy_attachment" "mcp_platform_s3" {
+  count      = var.deploy_mcp_platform ? 1 : 0
+  role       = aws_iam_role.mcp_platform[0].name
+  policy_arn = aws_iam_policy.mcp_platform_s3[0].arn
+}
+
+resource "aws_iam_role_policy_attachment" "mcp_platform_cloudwatch" {
+  count      = var.deploy_mcp_platform ? 1 : 0
+  role       = aws_iam_role.mcp_platform[0].name
+  policy_arn = aws_iam_policy.mcp_platform_cloudwatch[0].arn
+}
+
+resource "aws_iam_role_policy_attachment" "mcp_platform_kms" {
+  count      = var.deploy_mcp_platform ? 1 : 0
+  role       = aws_iam_role.mcp_platform[0].name
+  policy_arn = aws_iam_policy.mcp_platform_kms[0].arn
+}
+
+# Data sources
+data "aws_region" "current" {}
+data "aws_caller_identity" "current" {} 
