@@ -39,7 +39,7 @@ Deploy only the MCP Platform without Wazuh SIEM.
 ### Deployment
 1. Clone the repository:
 ```bash
-git clone https://github.com/your-org/ASoC-MCP.git
+git clone https://github.com/Parthasarathi7722/ASoC-MCP.git
 cd ASoC-MCP
 ```
 
@@ -254,4 +254,7 @@ aws elbv2 describe-target-health --target-group-arn your-target-group-arn
 For issues and feature requests, please create a GitHub issue in this repository.
 
 ## License
-This project is licensed under the MIT License - see the LICENSE file for details. 
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Author
+- **Parthasarathi7722** - [GitHub Profile](https://github.com/Parthasarathi7722) 

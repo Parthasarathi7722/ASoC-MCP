@@ -4,7 +4,7 @@ import json
 import os
 from datetime import datetime
 
-class TestMCPPlatformIntegration(unittest.TestCase):
+class TestParthasarathi7722MCPPlatformIntegration(unittest.TestCase):
     def setUp(self):
         self.base_url = os.getenv('MCP_PLATFORM_URL', 'http://localhost:8000')
         self.api_key = os.getenv('MCP_API_KEY', 'test-key')
