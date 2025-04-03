@@ -1,135 +1,207 @@
-# Model Context Protocol (MCP) Platform
+# ASoC-MCP Platform
 
 ## Overview
-
-The **Model Context Protocol (MCP) Platform** is a microservices-based system for AI-driven cybersecurity operations. It coordinates multiple specialized services to ingest security logs, analyze them with AI (Large Language Models), and automate incident response workflows.
-
-## Key Features
-
-- **AI-Orchestrated Analysis:** LLM Orchestrator service manages interactions with Large Language Models
-- **Specialized Security Agents:** Dedicated microservices for Triage, Investigation, Threat Intel, and Remediation
-- **Memory and Context:** Fast in-memory data store for context retention
-- **Automated Workflows:** Workflow Engine for executing security playbooks
-- **Extensible Connectors:** Pluggable Data Source Connectors for various log sources
-- **Secure and Modular:** Robust Authentication system with JWT, OAuth2, API keys
+The ASoC-MCP (Advanced Security Operations Center - Model Context Protocol) Platform is a comprehensive security operations platform that combines the power of Wazuh SIEM with the MCP Platform for advanced security operations. This project provides a flexible deployment option, allowing users to deploy either the complete ASoC with MCP or just the MCP Platform alone.
 
 ## Architecture
+The platform consists of the following components:
 
-The platform consists of several microservices:
+### Core Components
+- **VPC with public and private subnets**: Secure network isolation
+- **Security Groups**: Granular access control
+- **S3 Buckets**: Log storage for CloudTrail, WAF, ALB, and VPC Flow logs
+- **CloudWatch Logs**: Centralized logging
+- **IAM Roles and Policies**: Least privilege access
 
-1. **Core Services:**
-   - LLM Orchestrator
-   - Agent Manager
-   - Memory System (Redis)
-   - Workflow Engine (Celery)
+### Optional Components
+- **Wazuh SIEM**: Open-source security information and event management
+- **MCP Platform**: AI-driven security operations platform
 
-2. **Security Agents:**
-   - Triage Agent
-   - Investigation Agent
-   - Threat Intel Agent
-   - Remediation Agent
+## Deployment Options
 
-3. **Support Services:**
-   - Authentication Service
-   - Notifications Service
-   - Data Source Connectors
+### Option 1: Complete ASoC with MCP
+Deploy the full Advanced Security Operations Center with both Wazuh SIEM and MCP Platform.
 
-## Getting Started
-
-### Prerequisites
-
-- Docker and Docker Compose
-- Python 3.11+
-- Required API keys (OpenAI, VirusTotal, etc.)
-
-### Installation
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/MCP-Platform.git
-   cd MCP-Platform
-   ```
-
-2. Create a `.env` file with required credentials:
-   ```env
-   JWT_SECRET=your-secret-key
-   OPENAI_API_KEY=your-openai-key
-   # Add other required API keys and credentials
-   ```
-
-3. Build and start the services:
-   ```bash
-   docker-compose up --build
-   ```
+### Option 2: MCP Platform Only
+Deploy only the MCP Platform without Wazuh SIEM.
 
 ## Quick Start Guide
 
-### 1. Authentication
+### Prerequisites
+- AWS Account with appropriate permissions
+- Terraform installed (version >= 1.0.0)
+- AWS CLI configured with appropriate credentials
+- SSH key pair for EC2 instance access
 
-1. Create an admin user:
-   ```bash
-   curl -X POST http://localhost:8001/users -H "Content-Type: application/json" -d '{"username": "admin", "password": "secure-password", "email": "admin@example.com", "full_name": "Admin User", "role": "admin"}'
-   ```
-
-2. Obtain authentication token:
-   ```bash
-   curl -X POST http://localhost:8001/token -H "Content-Type: application/x-www-form-urlencoded" -d "username=admin&password=secure-password"
-   ```
-
-### 2. Connecting Data Sources
-
-Add a security data source:
+### Deployment
+1. Clone the repository:
 ```bash
-curl -X POST http://localhost:8003/sources -H "Content-Type: application/json" -H "Authorization: Bearer YOUR_TOKEN" -d '{"name": "Security Logs", "type": "elasticsearch", "enabled": true, "config": {"hosts": ["http://elasticsearch:9200"], "username": "elastic", "password": "your-password"}, "description": "Security event logs", "tags": ["logs", "security"]}'
+git clone https://github.com/your-org/ASoC-MCP.git
+cd ASoC-MCP
 ```
 
-### 3. Alert Management
-
-Submit a security alert:
+2. Initialize Terraform:
 ```bash
-curl -X POST http://localhost:8004/alerts -H "Content-Type: application/json" -H "Authorization: Bearer YOUR_TOKEN" -d '{"title": "Suspicious Login Attempt", "description": "Multiple failed login attempts from IP 192.168.1.100", "source": "IDS", "severity": "medium", "indicators": [{"type": "ip", "value": "192.168.1.100"}]}'
+cd terraform
+terraform init
 ```
 
-### 4. Investigation and Remediation
+3. Create a `terraform.tfvars` file with your configuration:
+```hcl
+# Required variables
+environment = "dev"
+project_name = "asoc"
+key_name = "your-key-name"
 
-Initiate an investigation:
-```bash
-curl -X POST http://localhost:8004/alerts/YOUR_ALERT_ID/investigate -H "Authorization: Bearer YOUR_TOKEN"
+# Deployment options
+deploy_wazuh = true        # Set to false to deploy only MCP Platform
+deploy_mcp_platform = true # Set to false to deploy only Wazuh
+
+# Wazuh configuration (if deploy_wazuh = true)
+wazuh_admin_password = "your-secure-password"
+wazuh_instance_type = "t3.large"
+
+# MCP Platform configuration (if deploy_mcp_platform = true)
+openai_api_key = "your-openai-api-key"
+jwt_secret = "your-jwt-secret"
+mcp_instance_type = "t3.large"
+
+# S3 bucket configuration (optional)
+cloudtrail_bucket = ""  # Leave empty to create new
+waf_logs_bucket = ""    # Leave empty to create new
+alb_logs_bucket = ""    # Leave empty to create new
+vpc_flow_logs_bucket = "" # Leave empty to create new
 ```
 
-Request remediation:
+4. Deploy the infrastructure:
 ```bash
-curl -X POST http://localhost:8004/alerts/YOUR_ALERT_ID/remediate -H "Authorization: Bearer YOUR_TOKEN" -d '{"actions": ["block_ip", "reset_password"]}'
+terraform plan
+terraform apply
 ```
 
-## Real-World Use Cases
+## Component Configuration
 
-### Automated Alert Triage and Investigation
-Configure data sources to feed alerts into the MCP Platform. The Triage Agent automatically analyzes and prioritizes alerts, while the Investigation Agent conducts initial analysis of high-priority alerts.
+### Wazuh Configuration
+If you deployed Wazuh, you'll need to configure it. SSH into the Wazuh server and follow these steps:
 
-### Threat Intelligence Integration
-Configure the Threat Intel Agent with your threat intelligence API keys. When an alert contains indicators (IPs, domains, hashes), the agent automatically enriches them to determine if the alert represents a real threat.
+1. Configure ossec.conf:
+```bash
+sudo nano /var/ossec/etc/ossec.conf
+```
 
-### Automated Remediation
-Configure the Remediation Agent with your security tools. Define remediation playbooks for common scenarios. When an investigation confirms a threat, the agent automatically executes remediation actions.
+Add the following sections (modify as needed):
+```xml
+<ossec_config>
+  <!-- Email notifications -->
+  <global>
+    <email_notification>yes</email_notification>
+    <smtp_server>smtp.your-email-provider.com</smtp_server>
+    <smtp_port>587</smtp_port>
+    <smtp_user>your-email@domain.com</smtp_user>
+    <smtp_password>your-email-password</smtp_password>
+    <from>wazuh@your-domain.com</from>
+  </global>
 
-## Development
+  <!-- Integration with MCP Platform -->
+  <integration>
+    <name>mcp</name>
+    <api_url>https://your-mcp-platform-url/api/v1</api_url>
+    <api_key>your-mcp-api-key</api_key>
+  </integration>
 
-### Adding New Connectors
+  <!-- Add your custom rules and decoders here -->
+</ossec_config>
+```
 
-1. Create a new connector in the `connectors/` directory
-2. Implement the required interface
-3. Add configuration to `docker-compose.yml`
+2. Configure Wazuh Dashboard:
+```bash
+sudo nano /etc/wazuh-dashboard/wazuh_dashboard.yml
+```
 
-### Modifying Playbooks
+Update the following settings:
+```yaml
+server:
+  host: "0.0.0.0"
+  port: 443
+  ssl:
+    enabled: true
+    certificate: /etc/wazuh-dashboard/certs/wazuh-dashboard.crt
+    key: /etc/wazuh-dashboard/certs/wazuh-dashboard.key
 
-1. Update the Agent Manager's playbook definitions
-2. Test the changes using the provided test endpoints
+wazuh:
+  api:
+    url: https://your-wazuh-manager:55000
+    username: admin
+    password: your-wazuh-admin-password
+```
 
-## For More Information
+3. Restart Wazuh services:
+```bash
+sudo systemctl restart wazuh-manager
+sudo systemctl restart wazuh-api
+sudo systemctl restart wazuh-dashboard
+```
 
-For detailed documentation, environment configuration examples, and advanced usage scenarios, please refer to the [MCP Platform README](MCP-Platform/README.md).
+### MCP Platform Configuration
+If you deployed the MCP Platform, you'll need to configure it. SSH into the MCP Platform instance and follow these steps:
+
+1. Access the MCP Platform API:
+```bash
+curl -X POST https://your-mcp-platform-url/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "your-admin-password"}'
+```
+
+2. Configure data source connectors:
+```bash
+curl -X POST https://your-mcp-platform-url/api/v1/connectors \
+  -H "Authorization: Bearer your-jwt-token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "wazuh",
+    "type": "wazuh",
+    "config": {
+      "api_url": "https://your-wazuh-manager:55000",
+      "username": "admin",
+      "password": "your-wazuh-admin-password"
+    }
+  }'
+```
+
+## Documentation
+For more detailed information, please refer to the following documentation:
+
+- [MCP Platform Documentation](MCP-Platform/README.md): Detailed documentation for the MCP Platform
+- [MCP Platform Deployment Guide](MCP-Platform/DEPLOYMENT.md): Step-by-step deployment guide for the MCP Platform
+- [Wazuh Documentation](https://documentation.wazuh.com/): Official Wazuh documentation
+
+## Security Considerations
+1. Change default passwords immediately after deployment
+2. Regularly update Wazuh and MCP Platform components
+3. Monitor and rotate API keys and certificates
+4. Implement proper network segmentation
+5. Enable encryption for data at rest and in transit
+
+## Troubleshooting
+1. Check Wazuh service status:
+```bash
+sudo systemctl status wazuh-manager
+sudo systemctl status wazuh-api
+sudo systemctl status wazuh-dashboard
+```
+
+2. View Wazuh logs:
+```bash
+sudo tail -f /var/ossec/logs/ossec.log
+```
+
+3. Check MCP Platform logs:
+```bash
+docker logs mcp-platform
+```
+
+## Support
+For issues and feature requests, please create a GitHub issue in this repository.
 
 ## License
-
 This project is licensed under the MIT License - see the LICENSE file for details. 
