@@ -1,0 +1,35 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: asoc-mcp-ingress
+  namespace: asoc-mcp
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  tls:
+  - hosts:
+    - wazuh.yourdomain.com
+    - mcp.yourdomain.com
+    secretName: asoc-mcp-tls
+  rules:
+  - host: wazuh.yourdomain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: wazuh-manager
+            port:
+              number: 55000
+  - host: mcp.yourdomain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: mcp-platform
+            port:
+              number: 8000 

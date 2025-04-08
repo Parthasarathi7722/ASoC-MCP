@@ -1,124 +1,81 @@
-version: "3.9"
+version: '3.8'
+
 services:
-  agent_manager:
-    build: ./agent_manager
-    container_name: agent_manager
+  wazuh-manager:
+    image: wazuh/wazuh-manager:4.7.0
+    container_name: wazuh-manager
+    ports:
+      - "1514:1514"
+      - "1515:1515"
+      - "55000:55000"
+    volumes:
+      - wazuh-manager-data:/var/ossec/data
+      - wazuh-manager-logs:/var/ossec/logs
+      - wazuh-manager-config:/var/ossec/etc
+    environment:
+      - WAZUH_MANAGER_PASSWORD=${WAZUH_MANAGER_PASSWORD:-ChangeMe123!}
+    networks:
+      - asoc-network
+
+  wazuh-dashboard:
+    image: wazuh/wazuh-dashboard:4.7.0
+    container_name: wazuh-dashboard
+    ports:
+      - "443:443"
+    volumes:
+      - wazuh-dashboard-data:/usr/share/wazuh-dashboard/data
+      - wazuh-dashboard-config:/usr/share/wazuh-dashboard/config
+    environment:
+      - WAZUH_API_URL=https://wazuh-manager:55000
+      - WAZUH_API_USERNAME=admin
+      - WAZUH_API_PASSWORD=${WAZUH_MANAGER_PASSWORD:-ChangeMe123!}
+    depends_on:
+      - wazuh-manager
+    networks:
+      - asoc-network
+
+  mcp-platform:
+    image: parthasarathi7722/mcp-platform:latest
+    container_name: mcp-platform
     ports:
       - "8000:8000"
-    environment:
-      - JWT_SECRET=${JWT_SECRET}
-      - MEMORY_URL=redis://memory:6379
-      - CELERY_BROKER_URL=redis://memory:6379/0
-    depends_on:
-      - memory
-      - auth_service
-      - llm_orchestrator
-      - triage_agent
-      - investigation_agent
-      - threat_intel_agent
-      - remediation_agent
-
-  llm_orchestrator:
-    build: ./llm_orchestrator
-    container_name: llm_orchestrator
+    volumes:
+      - mcp-platform-data:/app/data
+      - mcp-platform-logs:/app/logs
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - MEMORY_URL=redis://memory:6379
-      - JWT_SECRET=${JWT_SECRET}
+      - JWT_SECRET=${JWT_SECRET:-ChangeMe123!}
+      - WAZUH_API_URL=https://wazuh-manager:55000
+      - WAZUH_USERNAME=admin
+      - WAZUH_PASSWORD=${WAZUH_MANAGER_PASSWORD:-ChangeMe123!}
     depends_on:
-      - memory
+      - wazuh-manager
+    networks:
+      - asoc-network
 
-  triage_agent:
-    build: ./agents/triage_agent
-    container_name: triage_agent
-    environment:
-      - JWT_SECRET=${JWT_SECRET}
-      - MEMORY_URL=redis://memory:6379
-    depends_on:
-      - memory
-
-  investigation_agent:
-    build: ./agents/investigation_agent
-    container_name: investigation_agent
-    environment:
-      - JWT_SECRET=${JWT_SECRET}
-      - MEMORY_URL=redis://memory:6379
-      - LLM_ORCHESTRATOR_URL=http://llm_orchestrator:8000
-    depends_on:
-      - memory
-      - llm_orchestrator
-
-  threat_intel_agent:
-    build: ./agents/threat_intel_agent
-    container_name: threat_intel_agent
-    environment:
-      - JWT_SECRET=${JWT_SECRET}
-      - VT_API_KEY=${VT_API_KEY}
-      - MEMORY_URL=redis://memory:6379
-    depends_on:
-      - memory
-
-  remediation_agent:
-    build: ./agents/remediation_agent
-    container_name: remediation_agent
-    environment:
-      - JWT_SECRET=${JWT_SECRET}
-      - FIREWALL_API_URL=${FIREWALL_API_URL}
-      - FIREWALL_API_KEY=${FIREWALL_API_KEY}
-    depends_on:
-      - memory
-
-  connectors:
-    build: ./connectors
-    container_name: connectors
+  terraform:
+    image: hashicorp/terraform:1.5.0
+    container_name: terraform
+    volumes:
+      - ./terraform:/terraform
+      - ~/.aws:/root/.aws:ro
+    working_dir: /terraform
     environment:
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_LOG_BUCKET=${AWS_LOG_BUCKET}
-      - AGENT_MANAGER_URL=http://agent_manager:8000/alert
-      - O365_CLIENT_ID=${O365_CLIENT_ID}
-      - O365_TENANT_ID=${O365_TENANT_ID}
-      - O365_CLIENT_SECRET=${O365_CLIENT_SECRET}
-    depends_on:
-      - agent_manager
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+    networks:
+      - asoc-network
 
-  auth_service:
-    build: ./auth_service
-    container_name: auth_service
-    ports:
-      - "8001:8000"
-    environment:
-      - JWT_SECRET=${JWT_SECRET}
-    depends_on:
-      - memory
+volumes:
+  wazuh-manager-data:
+  wazuh-manager-logs:
+  wazuh-manager-config:
+  wazuh-dashboard-data:
+  wazuh-dashboard-config:
+  mcp-platform-data:
+  mcp-platform-logs:
 
-  notifications:
-    build: ./notifications
-    container_name: notifications
-    environment:
-      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
-      - EMAIL_SMTP_SERVER=${EMAIL_SMTP_SERVER}
-      - EMAIL_SMTP_USER=${EMAIL_SMTP_USER}
-      - EMAIL_SMTP_PASS=${EMAIL_SMTP_PASS}
-      - EMAIL_TO=${EMAIL_TO}
-      - EMAIL_FROM=${EMAIL_FROM}
-      - PD_API_KEY=${PD_API_KEY}
-      - TEAMS_WEBHOOK_URL=${TEAMS_WEBHOOK_URL}
-      - JWT_SECRET=${JWT_SECRET}
-    depends_on:
-      - memory
-
-  memory:
-    image: redis:7-alpine
-    container_name: memory
-    ports:
-      - "6379:6379"
-
-  workflow_engine:
-    build: ./agent_manager
-    command: ["celery", "-A", "tasks:celery_app", "worker", "--loglevel=info"]
-    environment:
-      - CELERY_BROKER_URL=redis://memory:6379/0
-    depends_on:
-      - agent_manager
-      - memory 
+networks:
+  asoc-network:
+    driver: bridge 

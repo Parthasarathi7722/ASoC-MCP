@@ -1,0 +1,87 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: wazuh-monitor
+  namespace: asoc-mcp
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: wazuh-manager
+  endpoints:
+  - port: wazuh-api
+    interval: 30s
+    path: /api/v4.0/
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: mcp-platform-monitor
+  namespace: asoc-mcp
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: mcp-platform
+  endpoints:
+  - port: http
+    interval: 30s
+    path: /metrics
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: wazuh-alerts
+  namespace: asoc-mcp
+  labels:
+    release: prometheus
+spec:
+  groups:
+  - name: wazuh
+    rules:
+    - alert: WazuhManagerDown
+      expr: up{job="wazuh-manager"} == 0
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Wazuh Manager is down"
+        description: "Wazuh Manager has been down for more than 5 minutes."
+    - alert: HighAlertRate
+      expr: rate(wazuh_alerts_total[5m]) > 10
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High alert rate detected"
+        description: "Wazuh is generating more than 10 alerts per second for 5 minutes."
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: mcp-platform-alerts
+  namespace: asoc-mcp
+  labels:
+    release: prometheus
+spec:
+  groups:
+  - name: mcp-platform
+    rules:
+    - alert: MCPPlatformDown
+      expr: up{job="mcp-platform"} == 0
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "MCP Platform is down"
+        description: "MCP Platform has been down for more than 5 minutes."
+    - alert: HighErrorRate
+      expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.1
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High error rate detected"
+        description: "MCP Platform is experiencing more than 10% error rate for 5 minutes." 

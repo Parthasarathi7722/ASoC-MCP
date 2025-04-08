@@ -27,6 +27,9 @@ Deploy the full Advanced Security Operations Center with both Wazuh SIEM and MCP
 ### Option 2: MCP Platform Only
 Deploy only the MCP Platform without Wazuh SIEM.
 
+### Option 3: Containerized Deployment
+Deploy the entire platform using Docker Compose or Kubernetes for simplified management and scalability.
+
 ## Quick Start Guide
 
 ### Prerequisites
@@ -35,6 +38,9 @@ Deploy only the MCP Platform without Wazuh SIEM.
 - AWS CLI configured with appropriate credentials
 - SSH key pair for EC2 instance access
 - SSL certificates for load balancers
+- Docker and Docker Compose (for containerized deployment)
+- Kubernetes cluster (for Kubernetes deployment)
+- Helm (optional, for monitoring)
 
 ### Deployment
 1. Clone the repository:
@@ -43,13 +49,35 @@ git clone https://github.com/Parthasarathi7722/ASoC-MCP.git
 cd ASoC-MCP
 ```
 
-2. Initialize Terraform:
+2. Choose your deployment method:
+
+#### A. Traditional Deployment (Terraform)
 ```bash
 cd terraform
 terraform init
+terraform plan
+terraform apply
 ```
 
-3. Create a `terraform.tfvars` file with your configuration:
+#### B. Docker Compose Deployment
+```bash
+# Make the deployment script executable
+chmod +x deploy.sh
+
+# Deploy using Docker Compose
+./deploy.sh docker-compose
+```
+
+#### C. Kubernetes Deployment
+```bash
+# Make the deployment script executable
+chmod +x deploy.sh
+
+# Deploy to Kubernetes
+./deploy.sh kubernetes
+```
+
+3. Create a `terraform.tfvars` file with your configuration (for Terraform deployment):
 ```hcl
 # Required variables
 environment = "dev"
@@ -76,12 +104,6 @@ cloudtrail_bucket = ""  # Leave empty to create new
 waf_logs_bucket = ""    # Leave empty to create new
 alb_logs_bucket = ""    # Leave empty to create new
 vpc_flow_logs_bucket = "" # Leave empty to create new
-```
-
-4. Deploy the infrastructure:
-```bash
-terraform plan
-terraform apply
 ```
 
 ## Component Configuration
@@ -173,6 +195,54 @@ curl -X POST https://your-mcp-platform-url/api/v1/connectors \
   }'
 ```
 
+## Containerized Deployment
+
+### Docker Compose
+The project includes a Docker Compose configuration for local development and testing. The configuration includes:
+
+- Wazuh Manager and Dashboard
+- MCP Platform
+- Terraform container for infrastructure deployment
+- Persistent volumes for data storage
+- Network configuration for secure communication
+
+### Kubernetes
+For production deployments, the project includes Kubernetes manifests:
+
+- Namespace isolation
+- ConfigMaps for application configuration
+- Secrets for sensitive data
+- StatefulSet for Wazuh Manager
+- Deployment for MCP Platform
+- Services for internal communication
+- Ingress for external access
+- PersistentVolumeClaims for data storage
+- Network policies for pod-to-pod communication
+- Monitoring with Prometheus and Grafana
+- Automated backups with S3 integration
+
+## Monitoring and Backup
+
+### Monitoring
+The Kubernetes deployment includes monitoring with Prometheus and Grafana:
+
+1. Service monitors for Wazuh and MCP Platform
+2. Alert rules for critical events
+3. Grafana dashboards for visualization
+
+### Backup and Restore
+The project includes automated backup and restore procedures:
+
+1. Daily backups of all persistent data
+2. S3 integration for secure storage
+3. Retention policy (7 days by default)
+4. Restore functionality for disaster recovery
+
+To restore from a backup:
+```bash
+./deploy.sh restore kubernetes
+```
+
 ## Testing
 
 ### Infrastructure Testing
@@ -226,6 +296,9 @@ For more detailed information, please refer to the following documentation:
 6. Use KMS for managing encryption keys
 7. Implement least privilege IAM policies
 8. Use load balancers with SSL/TLS termination
+9. Apply network policies to restrict pod-to-pod communication
+10. Use security contexts to run containers with non-root users
+11. Regularly backup data and test restore procedures
 
 ## Troubleshooting
 1. Check Wazuh service status:
@@ -248,6 +321,21 @@ docker logs mcp-platform
 4. Check load balancer health:
 ```bash
 aws elbv2 describe-target-health --target-group-arn your-target-group-arn
+```
+
+5. For Kubernetes deployments:
+```bash
+# Check pod status
+kubectl get pods -n asoc-mcp
+
+# View pod logs
+kubectl logs -n asoc-mcp <pod-name>
+
+# Check service status
+kubectl get services -n asoc-mcp
+
+# Check ingress status
+kubectl get ingress -n asoc-mcp
 ```
 
 ## Support

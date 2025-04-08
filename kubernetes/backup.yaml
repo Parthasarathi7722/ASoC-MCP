@@ -1,0 +1,81 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: asoc-mcp-backup
+  namespace: asoc-mcp
+spec:
+  schedule: "0 1 * * *"  # Run daily at 1 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: backup
+            image: bitnami/kubectl:latest
+            command:
+            - /bin/sh
+            - -c
+            - |
+              # Create backup directory
+              mkdir -p /backup/$(date +%Y-%m-%d)
+              
+              # Backup Wazuh data
+              kubectl exec -n asoc-mcp wazuh-manager-0 -- tar -czf /tmp/wazuh-data-backup.tar.gz -C /var/ossec/data .
+              kubectl cp asoc-mcp/wazuh-manager-0:/tmp/wazuh-data-backup.tar.gz /backup/$(date +%Y-%m-%d)/wazuh-data-backup.tar.gz
+              
+              # Backup Wazuh logs
+              kubectl exec -n asoc-mcp wazuh-manager-0 -- tar -czf /tmp/wazuh-logs-backup.tar.gz -C /var/ossec/logs .
+              kubectl cp asoc-mcp/wazuh-manager-0:/tmp/wazuh-logs-backup.tar.gz /backup/$(date +%Y-%m-%d)/wazuh-logs-backup.tar.gz
+              
+              # Backup MCP Platform data
+              kubectl exec -n asoc-mcp $(kubectl get pod -n asoc-mcp -l app=mcp-platform -o jsonpath="{.items[0].metadata.name}") -- tar -czf /tmp/mcp-data-backup.tar.gz -C /app/data .
+              kubectl cp asoc-mcp/$(kubectl get pod -n asoc-mcp -l app=mcp-platform -o jsonpath="{.items[0].metadata.name}"):/tmp/mcp-data-backup.tar.gz /backup/$(date +%Y-%m-%d)/mcp-data-backup.tar.gz
+              
+              # Backup MCP Platform logs
+              kubectl exec -n asoc-mcp $(kubectl get pod -n asoc-mcp -l app=mcp-platform -o jsonpath="{.items[0].metadata.name}") -- tar -czf /tmp/mcp-logs-backup.tar.gz -C /app/logs .
+              kubectl cp asoc-mcp/$(kubectl get pod -n asoc-mcp -l app=mcp-platform -o jsonpath="{.items[0].metadata.name}"):/tmp/mcp-logs-backup.tar.gz /backup/$(date +%Y-%m-%d)/mcp-logs-backup.tar.gz
+              
+              # Upload to S3 (replace with your S3 bucket)
+              aws s3 cp --recursive /backup/$(date +%Y-%m-%d) s3://your-backup-bucket/asoc-mcp-backups/$(date +%Y-%m-%d)/
+              
+              # Clean up old backups (keep last 7 days)
+              find /backup -type d -mtime +7 -exec rm -rf {} \;
+            volumeMounts:
+            - name: backup-volume
+              mountPath: /backup
+            - name: aws-credentials
+              mountPath: /root/.aws
+              readOnly: true
+          volumes:
+          - name: backup-volume
+            persistentVolumeClaim:
+              claimName: backup-pvc
+          - name: aws-credentials
+            secret:
+              secretName: aws-credentials
+          restartPolicy: OnFailure
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backup-pvc
+  namespace: asoc-mcp
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: aws-credentials
+  namespace: asoc-mcp
+type: Opaque
+stringData:
+  credentials: |
+    [default]
+    aws_access_key_id = your-aws-access-key
+    aws_secret_access_key = your-aws-secret-key
+    region = us-east-1 

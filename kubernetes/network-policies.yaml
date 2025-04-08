@@ -1,0 +1,64 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: wazuh-network-policy
+  namespace: asoc-mcp
+spec:
+  podSelector:
+    matchLabels:
+      app: wazuh-manager
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: mcp-platform
+    ports:
+    - protocol: TCP
+      port: 55000
+  - from:
+    - podSelector:
+        matchLabels:
+          app: wazuh-dashboard
+    ports:
+    - protocol: TCP
+      port: 55000
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: mcp-platform
+    ports:
+    - protocol: TCP
+      port: 8000
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mcp-platform-network-policy
+  namespace: asoc-mcp
+spec:
+  podSelector:
+    matchLabels:
+      app: mcp-platform
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: wazuh-manager
+    ports:
+    - protocol: TCP
+      port: 8000
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: wazuh-manager
+    ports:
+    - protocol: TCP
+      port: 55000 

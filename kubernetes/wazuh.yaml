@@ -1,0 +1,120 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: wazuh-manager
+  namespace: asoc-mcp
+spec:
+  serviceName: wazuh-manager
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wazuh-manager
+  template:
+    metadata:
+      labels:
+        app: wazuh-manager
+    spec:
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+        runAsGroup: 1000
+      containers:
+      - name: wazuh-manager
+        image: wazuh/wazuh-manager:4.7.0
+        ports:
+        - containerPort: 1514
+        - containerPort: 1515
+        - containerPort: 55000
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+        readinessProbe:
+          httpGet:
+            path: /api/v4.0/
+            port: 55000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - ps -ef | grep ossec-manager | grep -v grep
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        volumeMounts:
+        - name: wazuh-manager-data
+          mountPath: /var/ossec/data
+        - name: wazuh-manager-logs
+          mountPath: /var/ossec/logs
+        - name: wazuh-config
+          mountPath: /var/ossec/etc/ossec.conf
+          subPath: ossec.conf
+        env:
+        - name: WAZUH_MANAGER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: asoc-mcp-secrets
+              key: WAZUH_MANAGER_PASSWORD
+      volumes:
+      - name: wazuh-manager-data
+        persistentVolumeClaim:
+          claimName: wazuh-manager-data
+      - name: wazuh-manager-logs
+        persistentVolumeClaim:
+          claimName: wazuh-manager-logs
+      - name: wazuh-config
+        configMap:
+          name: wazuh-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wazuh-manager
+  namespace: asoc-mcp
+spec:
+  selector:
+    app: wazuh-manager
+  ports:
+  - port: 1514
+    targetPort: 1514
+    name: wazuh-agent
+  - port: 1515
+    targetPort: 1515
+    name: wazuh-reg
+  - port: 55000
+    targetPort: 55000
+    name: wazuh-api
+  type: ClusterIP
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: wazuh-manager-data
+  namespace: asoc-mcp
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: wazuh-manager-logs
+  namespace: asoc-mcp
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi 
